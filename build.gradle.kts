@@ -43,6 +43,7 @@ subprojects {
 
 dependencies {
     compileOnly("net.minestom", "minestom-snapshots", property("minestom.version") as String)
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")
 
     testImplementation("net.minestom", "minestom-snapshots", property("minestom.version") as String)
     testImplementation("io.kotest:kotest-assertions-core:5.9.0")

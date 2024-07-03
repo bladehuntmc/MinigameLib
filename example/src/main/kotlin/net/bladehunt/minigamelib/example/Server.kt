@@ -1,6 +1,8 @@
 package net.bladehunt.minigamelib.example
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.bladehunt.kotstom.GlobalEventHandler
 import net.bladehunt.kotstom.InstanceManager
 import net.bladehunt.kotstom.dsl.builder
@@ -22,10 +24,7 @@ suspend fun main() =
         launch { ExampleGame.start(scope) }
 
         GlobalEventHandler.builder<PlayerSpawnEvent> {
-            asyncHandler { event ->
-                delay(5000)
-                scope.addViewer(event.player)
-            }
+            asyncHandler { event -> scope.addPlayer(event.player) }
         }
 
         server.start("127.0.0.1", 25565)
