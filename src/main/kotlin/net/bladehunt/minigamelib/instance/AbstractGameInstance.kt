@@ -9,8 +9,7 @@ import net.bladehunt.minigamelib.element.GameElement
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 
-abstract class AbstractGameInstance<T : GameInstance<T>>(final override val game: Game<T>) :
-    GameInstance<T> {
+abstract class AbstractGameInstance<T : GameInstance<T>>(game: Game<T>) : GameInstance<T> {
     private var isComplete: Boolean = false
     private val closeSignal = CompletableDeferred<Unit>()
 

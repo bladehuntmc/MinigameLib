@@ -1,6 +1,6 @@
 package net.bladehunt.minigamelib.instance
 
-import net.bladehunt.minigamelib.Game
+import net.bladehunt.minigamelib.InstancedGame
 import net.bladehunt.minigamelib.event.PlayerJoinGameEvent
 import net.bladehunt.minigamelib.event.PlayerLeaveGameEvent
 import net.kyori.adventure.audience.Audience
@@ -14,7 +14,7 @@ import net.minestom.server.instance.Instance
 
 open class InstancedGameInstance<T : InstancedGameInstance<T>>(
     val instance: Instance,
-    game: Game<T>
+    override val game: InstancedGame<T>
 ) : AbstractGameInstance<T>(game), ForwardingAudience {
 
     init {
@@ -39,7 +39,7 @@ open class InstancedGameInstance<T : InstancedGameInstance<T>>(
     }
 
     override fun removePlayer(player: Player) {
-        TODO("Removing players to a fallback")
+        player.setInstance(game.getFallback(this as T, player))
     }
 
     override fun audiences(): Iterable<Audience> = instance.audiences()
