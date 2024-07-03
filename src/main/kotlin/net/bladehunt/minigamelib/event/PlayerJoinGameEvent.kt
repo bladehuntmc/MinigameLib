@@ -1,14 +1,14 @@
 package net.bladehunt.minigamelib.event
 
-import net.bladehunt.minigamelib.Game
+import net.bladehunt.minigamelib.instance.GameInstance
 import net.minestom.server.entity.Player
 import net.minestom.server.event.trait.CancellableEvent
 import net.minestom.server.event.trait.PlayerEvent
 
-data class PlayerJoinGameEvent<T : Game.Scope>(
-    override val scope: T,
+data class PlayerJoinGameEvent<T : GameInstance<T>>(
+    override val gameInstance: T,
     private val player: Player
-) : PlayerEvent, GameScopeEvent<T>, CancellableEvent {
+) : PlayerEvent, GameInstanceEvent<T>, CancellableEvent {
     private var isCancelled = false
 
     override fun getPlayer(): Player = player

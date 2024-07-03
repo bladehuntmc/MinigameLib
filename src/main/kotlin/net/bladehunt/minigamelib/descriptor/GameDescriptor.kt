@@ -1,10 +1,6 @@
 package net.bladehunt.minigamelib.descriptor
 
-import net.bladehunt.minigamelib.Game
 import net.bladehunt.minigamelib.element.GameElement
+import net.bladehunt.minigamelib.instance.GameInstance
 
-class GameDescriptor<S : Game.Scope>(
-    val name: String,
-    val elements: List<GameElement<S>>
-) {
-}
+data class GameDescriptor<T : GameInstance<T>>(val elements: List<GameElement<T>>)

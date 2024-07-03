@@ -33,13 +33,13 @@ suspend fun main() =
             it.player.teleport(Pos(0.5, 11.0, 0.5))
         }
 
-        val scope = ExampleGame.Scope(gameInstance)
-        launch { ExampleGame.start(scope) }
+        val instance = ExampleGame.GameInstance(gameInstance)
+        launch { instance.start() }
 
         CommandManager.register(
             kommand {
                 name = "join"
-                defaultExecutor { scope.addPlayer(player) }
+                defaultExecutor { instance.addPlayer(player) }
             })
 
         server.start("127.0.0.1", 25565)

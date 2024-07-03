@@ -1,16 +1,16 @@
 package net.bladehunt.minigamelib.element
 
 import kotlinx.coroutines.*
-import net.bladehunt.minigamelib.Game
 import net.bladehunt.minigamelib.event.PlayerJoinGameEvent
 import net.bladehunt.minigamelib.event.PlayerLeaveGameEvent
+import net.bladehunt.minigamelib.instance.GameInstance
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventListener
 
-suspend inline fun <S : Game.Scope> S.countdown(
+suspend inline fun <T : GameInstance<T>> T.countdown(
     requiredPlayerCount: Int,
     maxPlayerCount: Int,
     countdown: Int,
@@ -58,11 +58,11 @@ suspend inline fun <S : Game.Scope> S.countdown(
             }
         }
 
-    eventNode.addListener(joinListener)
-    eventNode.addListener(leaveListener)
+    gameEventNode.addListener(joinListener)
+    gameEventNode.addListener(leaveListener)
 
     future.await()
 
-    eventNode.removeListener(joinListener)
-    eventNode.removeListener(leaveListener)
+    gameEventNode.removeListener(joinListener)
+    gameEventNode.removeListener(leaveListener)
 }

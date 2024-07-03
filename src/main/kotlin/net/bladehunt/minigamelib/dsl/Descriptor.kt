@@ -1,28 +1,37 @@
 package net.bladehunt.minigamelib.dsl
 
-import net.bladehunt.minigamelib.Game
 import net.bladehunt.minigamelib.descriptor.GameDescriptor
 import net.bladehunt.minigamelib.element.GameElement
+import net.bladehunt.minigamelib.instance.GameInstance
 
-@DslMarker
-@Target(AnnotationTarget.FUNCTION, AnnotationTarget.TYPE)
-annotation class DescriptorDsl
+@DslMarker @Target(AnnotationTarget.FUNCTION, AnnotationTarget.TYPE) annotation class DescriptorDsl
 
-data class DescriptorBuilder<S : Game.Scope>(
+data class DescriptorBuilder<T : GameInstance<T>>(
     var name: String? = null,
-    val elements: MutableList<GameElement<S>> = arrayListOf()
+    val elements: MutableList<GameElement<T>> = arrayListOf()
 ) {
-    operator fun GameElement<S>.unaryPlus() {
-        elements.add(this)
-    }
 
-    fun build(): GameDescriptor<S> = GameDescriptor(requireNotNull(name), elements)
+    fun build(): GameDescriptor<T> = GameDescriptor(elements)
 }
 
 @DescriptorDsl
-inline fun <S : Game.Scope> gameDescriptor(block: DescriptorBuilder<S>.() -> Unit): GameDescriptor<S> =
-    DescriptorBuilder<S>().apply(block).build()
+inline fun <T : GameInstance<T>> gameDescriptor(
+    block: DescriptorBuilder<T>.() -> Unit
+): GameDescriptor<T> = DescriptorBuilder<T>().apply(block).build()
 
 @DescriptorDsl
-inline fun <S : Game.Scope> DescriptorBuilder<S>.element(crossinline block: suspend S.() -> Unit): GameElement<S> =
-    GameElement { block() }
+inline fun <T : GameInstance<T>> DescriptorBuilder<T>.element(
+    crossinline block:
+        suspend context(T, GameElement<T>)
+        () -> Unit
+): GameElement<T> {
+    val element =
+        object : GameElement<T>() {
+            context(T)
+            override suspend fun run() {
+                block(this@T, this)
+            }
+        }
+    elements.add(element)
+    return element
+}
