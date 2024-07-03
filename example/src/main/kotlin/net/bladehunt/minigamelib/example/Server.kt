@@ -8,6 +8,7 @@ import net.bladehunt.kotstom.GlobalEventHandler
 import net.bladehunt.kotstom.InstanceManager
 import net.bladehunt.kotstom.dsl.kommand.kommand
 import net.bladehunt.kotstom.dsl.listen
+import net.bladehunt.minigamelib.example.sneakoff.SneakOffInstance
 import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent
@@ -33,7 +34,7 @@ suspend fun main() =
             it.player.teleport(Pos(0.5, 11.0, 0.5))
         }
 
-        val instance = ExampleGame.GameInstance(gameInstance)
+        val instance = SneakOffInstance(gameInstance)
         launch { instance.start() }
 
         CommandManager.register(
