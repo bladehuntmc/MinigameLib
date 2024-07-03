@@ -19,6 +19,11 @@ suspend inline fun <S : Game.Scope> S.countdown(
             .append(Component.text(" joined the game. ", NamedTextColor.WHITE))
             .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW))
     },
+    crossinline leaveMessage: (Player, Int) -> Component = { player, count ->
+        player.name
+            .append(Component.text(" left the game. ", NamedTextColor.RED))
+            .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW))
+    },
     crossinline onCountdown: (Audience, Int) -> Unit = { audience, count ->
         audience.sendMessage(Component.text(count))
     }
@@ -45,8 +50,8 @@ suspend inline fun <S : Game.Scope> S.countdown(
 
     val leaveListener =
         EventListener.of(PlayerLeaveGameEvent::class.java) { event ->
-            sendMessage(joinMessage(event.player, players.size))
-            if (players.size <= requiredPlayerCount && isCountingDown) {
+            sendMessage(leaveMessage(event.player, players.size - 1))
+            if (players.size - 1 < requiredPlayerCount && isCountingDown) {
                 isCountingDown = false
                 job?.cancel()
                 job = null
