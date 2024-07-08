@@ -1,8 +1,6 @@
 package net.bladehunt.minigamelib.instance
 
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.select
 import net.bladehunt.minigamelib.Game
 import net.bladehunt.minigamelib.element.GameElement
@@ -17,23 +15,29 @@ abstract class AbstractGameInstance<T : GameInstance<T>>(game: Game<T>) : GameIn
 
     final override val elements: Iterator<GameElement<T>> = game.descriptor.elements.iterator()
 
-    override suspend fun start(): Unit = coroutineScope {
-        select<Unit> {
-            async {
-                    with(this@AbstractGameInstance as T) {
-                        elements.forEach {
-                            gameEventNode.addChild(it.elementEventNode)
-                            apply { it.run() }
-                            gameEventNode.removeChild(it.elementEventNode)
-                            if (isComplete) return@async
+    override suspend fun start(coroutineScope: CoroutineScope) {
+        coroutineScope.launch { runElementLoop() }
+    }
+
+    protected suspend fun runElementLoop() {
+        coroutineScope {
+            select<Unit> {
+                async {
+                        with(this@AbstractGameInstance as T) {
+                            elements.forEach {
+                                gameEventNode.addChild(it.elementEventNode)
+                                apply { it.run() }
+                                gameEventNode.removeChild(it.elementEventNode)
+                                if (isComplete) return@async
+                            }
                         }
                     }
-                }
-                .onAwait
+                    .onAwait
 
-            closeSignal.onAwait
+                closeSignal.onAwait
+            }
+            isComplete = true
         }
-        isComplete = true
     }
 
     override fun stop(force: Boolean) {

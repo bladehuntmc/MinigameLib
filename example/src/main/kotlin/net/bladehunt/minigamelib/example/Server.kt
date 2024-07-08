@@ -43,7 +43,7 @@ suspend fun main() =
             }
 
         val sneakOff = SneakOffInstance(gameInstance)
-        launch { sneakOff.start() }
+        launch { sneakOff.start(this) }
 
         CommandManager.register(
             kommand {

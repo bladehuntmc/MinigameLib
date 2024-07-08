@@ -1,5 +1,6 @@
 package net.bladehunt.minigamelib.instance
 
+import kotlinx.coroutines.CoroutineScope
 import net.bladehunt.minigamelib.Game
 import net.bladehunt.minigamelib.element.GameElement
 import net.kyori.adventure.audience.Audience
@@ -16,7 +17,7 @@ interface GameInstance<T : GameInstance<T>> : Audience {
 
     val players: Collection<Player>
 
-    suspend fun start()
+    suspend fun start(coroutineScope: CoroutineScope)
 
     fun stop(force: Boolean = true)
 
