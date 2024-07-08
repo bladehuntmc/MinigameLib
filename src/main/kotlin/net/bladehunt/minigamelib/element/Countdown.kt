@@ -10,20 +10,29 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventListener
 
-suspend inline fun <T : GameInstance<T>> T.countdown(
+context(GameElement<*>, GameInstance<*>)
+suspend inline fun countdown(
     requiredPlayerCount: Int,
     maxPlayerCount: Int,
     countdown: Int,
-    crossinline joinMessage: (Player, Int) -> Component = { player, count ->
-        player.name
-            .append(Component.text(" joined the game. ", NamedTextColor.WHITE))
-            .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW))
-    },
-    crossinline leaveMessage: (Player, Int) -> Component = { player, count ->
-        player.name
-            .append(Component.text(" left the game. ", NamedTextColor.RED))
-            .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW))
-    },
+    crossinline onJoin:
+        context(GameElement<*>, GameInstance<*>)
+        (Player, Int) -> Unit =
+        { player, count ->
+            sendMessage(
+                player.name
+                    .append(Component.text(" joined the game. ", NamedTextColor.WHITE))
+                    .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW)))
+        },
+    crossinline onLeave:
+        context(GameElement<*>, GameInstance<*>)
+        (Player, Int) -> Unit =
+        { player, count ->
+            sendMessage(
+                player.name
+                    .append(Component.text(" left the game. ", NamedTextColor.RED))
+                    .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW)))
+        },
     crossinline onCountdown: (Audience, Int) -> Unit = { audience, count ->
         audience.sendMessage(Component.text(count))
     }
@@ -34,12 +43,12 @@ suspend inline fun <T : GameInstance<T>> T.countdown(
 
     val joinListener =
         EventListener.of(PlayerJoinGameEvent::class.java) { event ->
-            sendMessage(joinMessage(event.player, players.size))
+            onJoin(this@GameElement, this@GameInstance, event.player, players.size)
             if (players.size >= requiredPlayerCount && !isCountingDown) {
                 isCountingDown = true
                 job = launch {
                     repeat(countdown) { index ->
-                        onCountdown(this@countdown, countdown - index)
+                        onCountdown(this@GameInstance, countdown - index)
                         delay(1000)
                     }
 
@@ -50,7 +59,7 @@ suspend inline fun <T : GameInstance<T>> T.countdown(
 
     val leaveListener =
         EventListener.of(PlayerLeaveGameEvent::class.java) { event ->
-            sendMessage(leaveMessage(event.player, players.size - 1))
+            onLeave(this@GameElement, this@GameInstance, event.player, players.size - 1)
             if (players.size - 1 < requiredPlayerCount && isCountingDown) {
                 isCountingDown = false
                 job?.cancel()
@@ -58,11 +67,11 @@ suspend inline fun <T : GameInstance<T>> T.countdown(
             }
         }
 
-    gameEventNode.addListener(joinListener)
-    gameEventNode.addListener(leaveListener)
+    elementEventNode.addListener(joinListener)
+    elementEventNode.addListener(leaveListener)
 
     future.await()
 
-    gameEventNode.removeListener(joinListener)
-    gameEventNode.removeListener(leaveListener)
+    elementEventNode.removeListener(joinListener)
+    elementEventNode.removeListener(leaveListener)
 }
