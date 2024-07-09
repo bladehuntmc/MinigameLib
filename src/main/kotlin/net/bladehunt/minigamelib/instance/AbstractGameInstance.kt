@@ -1,7 +1,9 @@
 package net.bladehunt.minigamelib.instance
 
-import kotlinx.coroutines.*
-import kotlinx.coroutines.selects.select
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import net.bladehunt.minigamelib.Game
 import net.bladehunt.minigamelib.element.GameElement
 import net.minestom.server.event.Event
@@ -9,40 +11,37 @@ import net.minestom.server.event.EventNode
 
 abstract class AbstractGameInstance<T : GameInstance<T>>(game: Game<T>) : GameInstance<T> {
     private var isComplete: Boolean = false
-    private val closeSignal = CompletableDeferred<Unit>()
+
+    private lateinit var job: Job
 
     override val gameEventNode: EventNode<Event> = EventNode.all("Minigame")
 
     final override val elements: Iterator<GameElement<T>> = game.descriptor.elements.iterator()
 
     override suspend fun start(coroutineScope: CoroutineScope) {
-        coroutineScope.launch { runElementLoop() }
+        coroutineScope.launch { execute() }
     }
 
-    protected suspend fun runElementLoop() {
-        coroutineScope {
-            select<Unit> {
-                async {
-                        with(this@AbstractGameInstance as T) {
-                            elements.forEach {
-                                gameEventNode.addChild(it.elementEventNode)
-                                apply { it.run() }
-                                gameEventNode.removeChild(it.elementEventNode)
-                                if (isComplete) return@async
-                            }
-                        }
+    protected open suspend fun execute() {
+        job =
+            CoroutineScope(Dispatchers.Default).launch {
+                with(this@AbstractGameInstance as T) {
+                    elements.forEach {
+                        gameEventNode.addChild(it.elementEventNode)
+                        apply { it.run() }
+                        gameEventNode.removeChild(it.elementEventNode)
+                        if (isComplete) return@launch
                     }
-                    .onAwait
-
-                closeSignal.onAwait
+                }
+                isComplete = true
             }
-            isComplete = true
-        }
+
+        job.join()
     }
 
     override fun stop(force: Boolean) {
         if (isComplete) return
-        isComplete = false
-        if (force) closeSignal.complete(Unit)
+        isComplete = true
+        if (force) job.cancel()
     }
 }

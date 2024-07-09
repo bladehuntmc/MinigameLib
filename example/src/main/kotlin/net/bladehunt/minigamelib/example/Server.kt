@@ -57,5 +57,11 @@ suspend fun main() =
                 defaultExecutor { player.setInstance(lobbyInstance) }
             })
 
+        CommandManager.register(
+            kommand {
+                name = "cancel"
+                defaultExecutor { sneakOff.stop(true) }
+            })
+
         server.start("127.0.0.1", 25565)
     }
