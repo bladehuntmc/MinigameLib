@@ -1,0 +1,5 @@
+[versions]
+minestom = "90fb708739"
+
+[libraries]
+minestom = { module = "net.minestom:minestom-snapshots", version.ref = "minestom" }
