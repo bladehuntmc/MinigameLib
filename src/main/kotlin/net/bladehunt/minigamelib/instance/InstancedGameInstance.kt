@@ -18,6 +18,7 @@ open class InstancedGameInstance<T : InstancedGameInstance<T>>(
 ) : AbstractGameInstance<T>(game), ForwardingAudience {
 
     init {
+        @Suppress("UNCHECKED_CAST")
         instance.eventNode().apply {
             addListener(PlayerSpawnEvent::class.java) {
                 addPlayer(it.player)
@@ -39,7 +40,7 @@ open class InstancedGameInstance<T : InstancedGameInstance<T>>(
     }
 
     override fun removePlayer(player: Player) {
-        player.setInstance(game.getFallback(this as T, player))
+        @Suppress("UNCHECKED_CAST") player.setInstance(game.getFallback(this as T, player))
     }
 
     override fun audiences(): Iterable<Audience> = instance.audiences()

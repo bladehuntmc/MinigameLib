@@ -25,6 +25,7 @@ abstract class AbstractGameInstance<T : GameInstance<T>>(game: Game<T>) : GameIn
     protected open suspend fun execute() {
         job =
             CoroutineScope(Dispatchers.Default).launch {
+                @Suppress("UNCHECKED_CAST")
                 with(this@AbstractGameInstance as T) {
                     elements.forEach {
                         gameEventNode.addChild(it.elementEventNode)
