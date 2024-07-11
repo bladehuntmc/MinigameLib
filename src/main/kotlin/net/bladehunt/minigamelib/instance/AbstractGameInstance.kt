@@ -6,6 +6,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.bladehunt.minigamelib.Game
 import net.bladehunt.minigamelib.element.GameElement
+import net.bladehunt.minigamelib.event.ElementBeginEvent
+import net.bladehunt.minigamelib.event.ElementCompleteEvent
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
 
@@ -29,7 +31,9 @@ abstract class AbstractGameInstance<T : GameInstance<T>>(game: Game<T>) : GameIn
                 with(this@AbstractGameInstance as T) {
                     elements.forEach {
                         gameEventNode.addChild(it.elementEventNode)
+                        gameEventNode.call(ElementBeginEvent(it, this))
                         apply { it.run() }
+                        gameEventNode.call(ElementCompleteEvent(it, this))
                         gameEventNode.removeChild(it.elementEventNode)
                         if (isComplete) return@launch
                     }
