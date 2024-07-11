@@ -1,19 +1,42 @@
 package net.bladehunt.minigamelib.store
 
-import java.util.*
 import kotlin.reflect.KProperty
+import net.bladehunt.minigamelib.event.PlayerLeaveGameEvent
+import net.bladehunt.minigamelib.instance.InstancedGameInstance
 import net.minestom.server.entity.Player
+import net.minestom.server.tag.Tag
+import net.minestom.server.tag.Taggable
 
-class Store<T>(val default: (Player) -> T) {
-    private val values: MutableMap<UUID, T> = hashMapOf()
+class Store<A : Taggable, B>(val default: (A) -> B) {
+    internal var tag: Tag<B>? = null
 
-    context(Player)
-    operator fun getValue(thisRef: Any?, property: KProperty<*>): T {
-        return values.getOrPut(uuid) { default(this@Player) }
+    private fun getOrCreateTag(taggable: A, property: KProperty<*>): Tag<B> {
+        return tag
+            ?: run {
+                val new = Tag.Transient<B>(property.name)
+                val value = default(taggable)
+                tag = new
+
+                taggable.setTag(new, value)
+
+                new
+            }
     }
 
-    context(Player)
-    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
-        values[uuid] = value
+    operator fun getValue(thisRef: A, property: KProperty<*>): B =
+        thisRef.getTag(getOrCreateTag(thisRef, property))
+
+    operator fun setValue(thisRef: A, property: KProperty<*>, value: B) {
+        thisRef.setTag(getOrCreateTag(thisRef, property), value)
     }
+}
+
+fun <T : InstancedGameInstance<T>, B> T.store(default: (Player) -> B): Store<Player, B> {
+    val store = Store(default)
+    this.gameEventNode.addListener(PlayerLeaveGameEvent::class.java) { event ->
+        val tag = store.tag ?: return@addListener
+        event.getPlayer().removeTag(tag)
+    }
+
+    return store
 }
