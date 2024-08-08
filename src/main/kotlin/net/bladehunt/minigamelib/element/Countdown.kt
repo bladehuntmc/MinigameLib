@@ -1,41 +1,32 @@
 package net.bladehunt.minigamelib.element
 
 import kotlinx.coroutines.*
-import net.bladehunt.minigamelib.event.PlayerJoinGameEvent
-import net.bladehunt.minigamelib.event.PlayerLeaveGameEvent
-import net.bladehunt.minigamelib.instance.GameInstance
-import net.kyori.adventure.audience.Audience
+import net.bladehunt.minigamelib.Game
+import net.bladehunt.minigamelib.event.game.PlayerJoinGameEvent
+import net.bladehunt.minigamelib.event.game.PlayerLeaveGameEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventListener
 
-context(GameElement<*>, GameInstance<*>)
-suspend inline fun countdown(
+context(Game, GameElement)
+suspend fun countdown(
     requiredPlayerCount: Int,
     maxPlayerCount: Int,
     countdown: Int,
-    crossinline onJoin:
-        context(GameElement<*>, GameInstance<*>)
-        (Player, Int) -> Unit =
-        { player, count ->
-            sendMessage(
-                player.name
-                    .append(Component.text(" joined the game. ", NamedTextColor.WHITE))
-                    .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW)))
-        },
-    crossinline onLeave:
-        context(GameElement<*>, GameInstance<*>)
-        (Player, Int) -> Unit =
-        { player, count ->
-            sendMessage(
-                player.name
-                    .append(Component.text(" left the game. ", NamedTextColor.RED))
-                    .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW)))
-        },
-    crossinline onCountdown: (Audience, Int) -> Unit = { audience, count ->
-        audience.sendMessage(Component.text(count))
-    }
+    onJoin: (Player, Int) -> Unit = { player, count ->
+        sendMessage(
+            player.name
+                .append(Component.text(" joined the game. ", NamedTextColor.WHITE))
+                .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW)))
+    },
+    onLeave: (Player, Int) -> Unit = { player, count ->
+        sendMessage(
+            player.name
+                .append(Component.text(" left the game. ", NamedTextColor.RED))
+                .append(Component.text("($count/$maxPlayerCount)", NamedTextColor.YELLOW)))
+    },
+    onCountdown: (Int) -> Unit = { count -> sendMessage(Component.text(count)) }
 ) = coroutineScope {
     val future = CompletableDeferred<Unit>()
     var job: Job? = null
@@ -43,12 +34,12 @@ suspend inline fun countdown(
 
     val joinListener =
         EventListener.of(PlayerJoinGameEvent::class.java) { event ->
-            onJoin(this@GameElement, this@GameInstance, event.player, players.size)
+            onJoin(event.player, players.size)
             if (players.size >= requiredPlayerCount && !isCountingDown) {
                 isCountingDown = true
                 job = launch {
                     repeat(countdown) { index ->
-                        onCountdown(this@GameInstance, countdown - index)
+                        onCountdown(countdown - index)
                         delay(1000)
                     }
 
@@ -59,7 +50,7 @@ suspend inline fun countdown(
 
     val leaveListener =
         EventListener.of(PlayerLeaveGameEvent::class.java) { event ->
-            onLeave(this@GameElement, this@GameInstance, event.player, players.size - 1)
+            onLeave(event.player, players.size - 1)
             if (players.size - 1 < requiredPlayerCount && isCountingDown) {
                 isCountingDown = false
                 job?.cancel()
@@ -67,11 +58,15 @@ suspend inline fun countdown(
             }
         }
 
-    elementEventNode.addListener(joinListener)
-    elementEventNode.addListener(leaveListener)
+    this@Game.eventNode().apply {
+        addListener(joinListener)
+        addListener(leaveListener)
+    }
 
     future.await()
 
-    elementEventNode.removeListener(joinListener)
-    elementEventNode.removeListener(leaveListener)
+    this@Game.eventNode().apply {
+        removeListener(joinListener)
+        removeListener(leaveListener)
+    }
 }
