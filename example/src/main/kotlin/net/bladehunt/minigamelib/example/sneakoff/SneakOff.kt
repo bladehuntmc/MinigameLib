@@ -5,30 +5,38 @@ import net.bladehunt.kotstom.dsl.listen
 import net.bladehunt.kotstom.extension.adventure.asComponent
 import net.bladehunt.kotstom.extension.adventure.color
 import net.bladehunt.kotstom.extension.adventure.plus
+import net.bladehunt.kotstom.extension.adventure.text
 import net.bladehunt.minigamelib.InstancedGame
 import net.bladehunt.minigamelib.descriptor.GameDescriptor
 import net.bladehunt.minigamelib.dsl.element
 import net.bladehunt.minigamelib.dsl.gameDescriptor
 import net.bladehunt.minigamelib.element.countdown
 import net.bladehunt.minigamelib.example.lobbyInstance
+import net.bladehunt.minigamelib.util.createElementInstanceEventNode
+import net.bladehunt.minigamelib.util.store
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
 import net.minestom.server.event.player.PlayerStartSneakingEvent
 import net.minestom.server.instance.Instance
+import net.minestom.server.utils.NamespaceID
+import java.util.*
 
-object SneakOff : InstancedGame<SneakOffInstance> {
-    override fun getFallback(instance: SneakOffInstance, player: Player): Instance = lobbyInstance
+class SneakOff(instance: Instance) : InstancedGame(UUID.randomUUID(), instance) {
+    override val id: NamespaceID = NamespaceID.from("example", "sneakoff")
 
-    override val descriptor: GameDescriptor<SneakOffInstance> = gameDescriptor {
-        name = "Example Game"
+    private var Player.sneakCount by store { 0 }
 
-        element {
+    override val descriptor: GameDescriptor = gameDescriptor {
+        +element {
             countdown(requiredPlayerCount = 2, maxPlayerCount = 2, countdown = 5)
-            sendMessage("Starting game!".asComponent())
+            sendMessage(text("Starting game!"))
         }
-        element {
-            sendMessage("Sneak as many times as possible!".asComponent())
-            elementEventNode.listen<PlayerStartSneakingEvent> {
+
+        +element {
+            val eventNode = createElementInstanceEventNode()
+
+            sendMessage(text("Sneak as many times as possible!"))
+            eventNode.listen<PlayerStartSneakingEvent> {
                 it.player.sendMessage("You sneaked")
                 it.player.sneakCount++
             }
@@ -38,7 +46,8 @@ object SneakOff : InstancedGame<SneakOffInstance> {
                 delay(1000)
             }
         }
-        element {
+
+        +element {
             var message = "<-- Game Overview -->".color(NamedTextColor.YELLOW)
             players
                 .sortedByDescending { it.sneakCount }
@@ -46,5 +55,9 @@ object SneakOff : InstancedGame<SneakOffInstance> {
 
             sendMessage(message)
         }
+    }
+
+    override fun Player.sendToFallback() {
+        this.setInstance(lobbyInstance).join()
     }
 }
