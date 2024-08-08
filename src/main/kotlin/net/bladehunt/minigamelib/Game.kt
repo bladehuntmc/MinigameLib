@@ -1,5 +1,7 @@
 package net.bladehunt.minigamelib
 
+import java.util.*
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -8,18 +10,20 @@ import net.bladehunt.minigamelib.descriptor.GameDescriptor
 import net.bladehunt.minigamelib.event.GameEventFilter
 import net.bladehunt.minigamelib.event.element.ElementBeginEvent
 import net.bladehunt.minigamelib.event.element.ElementCompleteEvent
-import net.bladehunt.minigamelib.event.game.GameBeginEvent
-import net.bladehunt.minigamelib.event.game.GameCompleteEvent
-import net.bladehunt.minigamelib.event.game.GameEvent
+import net.bladehunt.minigamelib.event.game.*
 import net.kyori.adventure.audience.Audience
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.event.EventHandler
 import net.minestom.server.event.EventNode
+import net.minestom.server.tag.Tag
 import net.minestom.server.utils.NamespaceID
-import java.util.*
+
+internal val GAME_TAG = Tag.Transient<Game>("game")
 
 abstract class Game(val uuid: UUID) : Audience, EventHandler<GameEvent> {
+    var canJoin: Boolean = false
+
     abstract val id: NamespaceID
 
     abstract val descriptor: GameDescriptor
@@ -34,12 +38,21 @@ abstract class Game(val uuid: UUID) : Audience, EventHandler<GameEvent> {
 
     override fun eventNode(): EventNode<GameEvent> = eventNode
 
-    suspend fun start() {
+    fun run(context: CoroutineContext = Dispatchers.Default) {
         val globalEventHandler = MinecraftServer.getGlobalEventHandler()
 
         globalEventHandler.call(GameBeginEvent(this))
+
+        eventNode.addListener(PlayerJoinGameEvent::class.java) { event ->
+            event.player.setTag(GAME_TAG, this)
+        }
+
+        eventNode.addListener(PlayerLeaveGameEvent::class.java) { event ->
+            event.player.removeTag(GAME_TAG)
+        }
+
         job =
-            CoroutineScope(Dispatchers.Default).launch {
+            CoroutineScope(context).launch {
                 descriptor.elements.forEach {
                     eventNode.addChild(it.eventNode())
                     globalEventHandler.call(ElementBeginEvent(this@Game, it))
@@ -48,15 +61,14 @@ abstract class Game(val uuid: UUID) : Audience, EventHandler<GameEvent> {
                     eventNode.removeChild(it.eventNode())
                     if (isComplete) return@launch
                 }
+
+                players.forEach { it.removeTag(GAME_TAG) }
+                globalEventHandler.call(GameCompleteEvent(this@Game))
+
+                GameManager.unregister(this@Game)
+
+                isComplete = true
             }
-
-        globalEventHandler.call(GameCompleteEvent(this))
-
-        GameManager.unregister(this)
-
-        job.join()
-
-        isComplete = true
     }
 
     fun stop(force: Boolean = false) {

@@ -1,6 +1,5 @@
 package net.bladehunt.minigamelib.example.sneakoff
 
-import java.util.*
 import kotlinx.coroutines.delay
 import net.bladehunt.kotstom.dsl.listen
 import net.bladehunt.kotstom.extension.adventure.asComponent
@@ -20,6 +19,7 @@ import net.minestom.server.entity.Player
 import net.minestom.server.event.player.PlayerStartSneakingEvent
 import net.minestom.server.instance.Instance
 import net.minestom.server.utils.NamespaceID
+import java.util.*
 
 class SneakOff(instance: Instance) : InstancedGame(UUID.randomUUID(), instance) {
     override val id: NamespaceID = NamespaceID.from("example", "sneakoff")
@@ -46,6 +46,7 @@ class SneakOff(instance: Instance) : InstancedGame(UUID.randomUUID(), instance) 
                 delay(1000)
             }
         }
+
         +element {
             var message = "<-- Game Overview -->".color(NamedTextColor.YELLOW)
             players

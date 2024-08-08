@@ -28,6 +28,7 @@ suspend fun countdown(
     },
     onCountdown: (Int) -> Unit = { count -> sendMessage(Component.text(count)) }
 ) = coroutineScope {
+    canJoin = true
     val future = CompletableDeferred<Unit>()
     var job: Job? = null
     var isCountingDown = false
@@ -37,6 +38,7 @@ suspend fun countdown(
             onJoin(event.player, players.size)
             if (players.size >= requiredPlayerCount && !isCountingDown) {
                 isCountingDown = true
+                canJoin = false
                 job = launch {
                     repeat(countdown) { index ->
                         onCountdown(countdown - index)
@@ -55,6 +57,7 @@ suspend fun countdown(
                 isCountingDown = false
                 job?.cancel()
                 job = null
+                canJoin = true
             }
         }
 
@@ -64,6 +67,8 @@ suspend fun countdown(
     }
 
     future.await()
+
+    canJoin = false
 
     this@Game.eventNode().apply {
         removeListener(joinListener)
