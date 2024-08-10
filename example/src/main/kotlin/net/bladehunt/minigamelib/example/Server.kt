@@ -38,7 +38,7 @@ suspend fun main() = coroutineScope {
     CommandManager.register(
         kommand {
             name = "join"
-            defaultExecutorAsync {
+            defaultExecutor {
                 val gameInstance =
                     InstanceManager.createInstanceContainer().apply {
                         chunkSupplier = ChunkSupplier(::LightingChunk)

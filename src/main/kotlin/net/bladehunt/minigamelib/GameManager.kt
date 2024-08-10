@@ -1,36 +1,45 @@
 package net.bladehunt.minigamelib
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
 object GameManager : Iterable<Game> {
-    private val games: MutableMap<UUID, Game> = mutableMapOf()
+    private val games: ConcurrentHashMap<UUID, Game> = ConcurrentHashMap()
+
+    fun <T : Game> getFirstGameByClass(clazz: Class<T>): T? {
+        return games.values.firstOrNull { it::class.java == clazz } as T?
+    }
 
     fun register(game: Game) {
-        check(!games.contains(game.uuid)) { "Game is already registered" }
-        games[game.uuid] = game
+        check(games.putIfAbsent(game.uuid, game) == null) { "Game is already registered" }
     }
 
     fun unregister(game: Game) {
-        check(games.contains(game.uuid)) { "Game is not registered" }
-        games.remove(game.uuid)
+        check(games.remove(game.uuid) != null) { "Game is not registered" }
     }
 
-    fun isRegistered(game: Game) = games.contains(game.uuid)
+    fun isRegistered(game: Game) = games.containsKey(game.uuid)
 
-    suspend inline fun <reified T : Game> getOrCreateFirstJoinableGame(
-        context: CoroutineContext = Dispatchers.Default,
-        block: () -> T
+    fun <T : Game> getOrCreateFirstJoinableGame(
+        clazz: Class<T>,
+        gameProvider: () -> T,
+        context: CoroutineContext = Dispatchers.Default
     ): Game {
-        return filterIsInstance<T>().firstOrNull { it.canJoin }
-            ?: block().also { game ->
-                register(game)
-                game.run()
-                delay(50)
-            }
+        return synchronized(games) {
+            getFirstGameByClass(clazz)
+                ?: gameProvider().also { game ->
+                    register(game)
+                    game.run(context)
+                }
+        }
     }
+
+    inline fun <reified T : Game> getOrCreateFirstJoinableGame(
+        context: CoroutineContext = Dispatchers.Default,
+        noinline gameProvider: () -> T
+    ) = getOrCreateFirstJoinableGame(T::class.java, gameProvider, context)
 
     override fun iterator(): Iterator<Game> = games.values.iterator()
 }

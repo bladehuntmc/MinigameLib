@@ -1,6 +1,7 @@
 package net.bladehunt.minigamelib
 
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,7 +39,13 @@ abstract class Game(val uuid: UUID) : Audience, EventHandler<GameEvent> {
 
     override fun eventNode(): EventNode<GameEvent> = eventNode
 
+    private val hasStarted = AtomicBoolean(false)
+
     fun run(context: CoroutineContext = Dispatchers.Default) {
+        check(hasStarted.get()) { "This game has already started." }
+
+        hasStarted.set(true)
+
         val globalEventHandler = MinecraftServer.getGlobalEventHandler()
 
         globalEventHandler.call(GameBeginEvent(this))
