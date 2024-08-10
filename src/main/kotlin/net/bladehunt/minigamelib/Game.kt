@@ -42,7 +42,7 @@ abstract class Game(val uuid: UUID) : Audience, EventHandler<GameEvent> {
     private val hasStarted = AtomicBoolean(false)
 
     fun run(context: CoroutineContext = Dispatchers.Default) {
-        check(hasStarted.get()) { "This game has already started." }
+        check(!hasStarted.get()) { "This game has already started." }
 
         hasStarted.set(true)
 
