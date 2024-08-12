@@ -28,7 +28,7 @@ object GameManager : Iterable<Game> {
         context: CoroutineContext = Dispatchers.Default
     ): Game {
         return synchronized(games) {
-            getFirstGameByClass(clazz)
+            games.values.firstOrNull { it::class.java == clazz && it.canJoin } as T?
                 ?: gameProvider().also { game ->
                     register(game)
                     game.run(context)
